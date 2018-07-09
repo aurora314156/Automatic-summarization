@@ -1,10 +1,11 @@
+# -*- coding: UTF-8 -*-
+
 import os
 import requests
 import json
 import re
 import math
 import operator
-from hanziconv import HanziConv
 import csv
 import jieba
 
@@ -24,16 +25,20 @@ def segmentation_one(content):
 	seg_list = list(jieba.cut(content, cut_all = False))
 	return seg_list
 
+
+
+
 def tf_idf():
 	tf_result = {}
-	with open('tf_idf.csv', 'r', encoding='utf-8') as csvfile:
+	with open('tf_idf.csv', 'r') as csvfile:
 		red = csv.reader(csvfile, delimiter=',')
 		for k, v in red:
 			if float(v) > 0:
 				tf_result[k] = v
 	return tf_result
 
-def get_summary(content, tf_idf, a):
+
+def get_summary(content, tf_idf):
 
 	contentSegment = re.split('，|。', content)
 
@@ -43,8 +48,6 @@ def get_summary(content, tf_idf, a):
 		total = 0
 		seg_list = segmentation_one(contentSegment[i])
 
-		#print(seg_list[:5])
-		#print("num : %d" % a)
 		for seg in seg_list:
 			try:
 				score += float(tf_idf[seg])
@@ -69,6 +72,7 @@ def get_summary(content, tf_idf, a):
 			if i == 5:
 				break
 
+	#0-1300字 10句話，1301-1950字 15句話，1951-2600 20句話，2601-3250 25句話，3251-Max 30句話
 	length = [0,1301,1951,2601,3251,1000000000000000000000]
 	limit = [10,15,20,25,30]
 	
@@ -90,26 +94,25 @@ def get_summary(content, tf_idf, a):
 	return '，'.join(result) + "。"
 
 
-#0-1300字 10句話，1301-1950字 15句話，1951-2600 20句話，2601-3250 25句話，3251-Max 30句話
-
-
-def getArticle():
-	
-	url = "http://140.124.183.5:8983/solr/EBCStation/select?indent=on&q=*:*&rows=999&wt=json"
-	article = requests.get(url).json()
-	return article
-
 def main():
-	article = getArticle()
-	tf_idf_obj = tf_idf()
 
-	articleLen = article['response']['numFound']
-	for a in range(articleLen):
-		content = article['response']['docs'][a]['content']
-		if "，" not in content or "。" not in content:
-			continue
-		summary = get_summary(content, tf_idf_obj, a)
-		print(summary)
+	tf_idf_res = tf_idf()
+
+	for i in range(2,3):
+		with open('./testData/dataset' + str(i)+ '.txt', 'r') as txtfile:
+			tr = txtfile.readlines()
+			flag = True
+			for t in tr:
+				if flag is True:
+					article = t
+					for a in article:
+						if '。' == a:
+							print(i)
+					# else:
+					summary = get_summary(article, tf_idf_res)
+					#print(summary)
+				
+				flag = not flag
 
 if __name__ == '__main__':
 	main()
