@@ -1,15 +1,15 @@
-# -*- coding: UTF-8 -*-
-
 import os
 import requests
 import json
 import re
 import math
 import operator
+from hanziconv import HanziConv
 import csv
 import jieba
 
 def segmentation_one(content):
+
 
 	stopword = [
 		'！', '~', '。', '：', '@', '、', '∼', '，',
@@ -25,12 +25,9 @@ def segmentation_one(content):
 	seg_list = list(jieba.cut(content, cut_all = False))
 	return seg_list
 
-
-
-
 def tf_idf():
 	tf_result = {}
-	with open('tf_idf.csv', 'r') as csvfile:
+	with open('tf_idf.csv', 'r', encoding='utf-8') as csvfile:
 		red = csv.reader(csvfile, delimiter=',')
 		for k, v in red:
 			if float(v) > 0:
@@ -93,26 +90,42 @@ def get_summary(content, tf_idf):
 				pass
 	return '，'.join(result) + "。"
 
+def outputResult(writer, article, summary, fileName):
+	# write match result to csv
+	writer.writerow([fileName])
+	writer.writerow([article])
+	writer.writerow([summary])
+	writer.writerow("\n")
 
 def main():
-
+	# get tf-idf ranking
 	tf_idf_res = tf_idf()
 
-	for i in range(2,3):
-		with open('./testData/dataset' + str(i)+ '.txt', 'r') as txtfile:
-			tr = txtfile.readlines()
-			flag = True
-			for t in tr:
-				if flag is True:
-					article = t
-					for a in article:
-						if '。' == a:
-							print(i)
-					# else:
-					summary = get_summary(article, tf_idf_res)
-					#print(summary)
-				
-				flag = not flag
+	for i in range(1,8):
+		with open('dataset' + str(i) +'.csv', 'w', newline='', encoding = 'utf-8') as res:
+			writer = csv.writer(res)
+			with open('./testData/dataset' + str(i)+ '.txt', 'r', newline='') as txtfile:
+				tr = txtfile.readlines()
+				flag = False
+				for t in tr:
+					summary_l, article_l = [], []
+					if flag is True:
+						article = t
+						article_l.append("article :")
+						article_l.append(t)
+						# get summary
+						summary = get_summary(article, tf_idf_res)
+						summary_l.append("summary :")
+						summary_l.append(summary)
+					# output result to csv
+					if flag is True:
+						outputResult(writer, article_l, summary_l, fileName)
+					else:
+						fileName = t
+
+					flag = not flag
+
+	print("Done!")
 
 if __name__ == '__main__':
 	main()
